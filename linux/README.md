@@ -1,6 +1,6 @@
 # Linux Assembly Language
 
-## Assemble with debugging (for GDB)):
+## Assemble with debugging (for GDB):
 
 ```
 $ nasm -g -f elf -o [file].o [file].asm
