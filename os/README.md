@@ -1,4 +1,4 @@
-# Barebones Assemble Language
+# Barebones Assembly Language
 
 ## Creating boot image:
 `
