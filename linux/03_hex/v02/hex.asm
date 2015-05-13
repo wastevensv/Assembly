@@ -8,8 +8,9 @@ _start:             ; tells linker entry point
   cmp dword [ebp + 4], 1  ; check argument count (1st item is always program path)
   je  err_no_args         ; no args entered, dont do anything.
 
-  mov ebx, 4
+;  mov ebx, 4              ; assuming string is 4 characters
   mov eax, [ebp + 12]     ; eax now points to the first argument
+  call str_len
   call string_to_int      ; parse argument 1 for an integer (returned in eax)
   call word_to_hexstr     ; convert the int (in eax) to a hexadecimal string (stored in outstr)
 
@@ -25,21 +26,45 @@ exit:
   int 80h           ; call kernel
 ; ----- END main -----
 
+; ----- START str_len -----
+; - Takes a string (pointed to by eax)
+; - Retuns its length as an integer (in ebx)
+str_len:
+  push eax          ; preserve eax in stack
+  push ecx          ; preserve ecx in stack
+  push edi          ; preserve edi in stack
+
+  mov edi, eax      ; edi points to the start of the string
+  xor eax, eax      ; eax is now 0 (NUL terminated string)
+  not ecx           ; ecx is now -1 (2s compliment) (not x = abs(x)-1)
+  cld               ; clear direction flag (search forward)
+  repne scasb       ; search string for value in al (0 or NUL)
+  not ecx           ; ecx was -length-2, (not x = abs(x)-1), ecx is now length+1
+  dec ecx           ; ecx is now string length
+
+  mov ebx, ecx      ; ebx is now string length
+  pop edi           ; return edi to original state
+  pop ecx           ; return ecx to original state
+  pop eax           ; return eax to original state
+  ret
+  
+; ----- END str_len -----
+
 ; ----- START string_to_int -----
-; - Converts a 4 character numeric string (pointed to by eax)
-; - to an interger (returned in eax)
+; - Takes a numeric string (pointed to by eax) and its length (in ebx)
+; - Returns the strings value (in eax)
 string_to_int:
   mov esi, eax      ; esi points to the start of the string
   add esi, ebx      ; esi now points to the end of the string
   xor eax, eax      ; eax = 0
-  mov edx, 1
+  mov edx, 1        ; edx = place multiplier (1s-place)
   .intloop:
     dec esi           ; shift back to next character
-    mov cl, [esi]     ; cx contains the character
-    and ecx, 0x000f   ; keep only the lowest 4 bits
+    mov cl, [esi]     ; cl contains current character in ascii
+    and ecx, 0x000f   ; keep only the lowest 4 bits (0x0034 = 4)
     imul ecx, edx     ; multiply ecx by edx
     add eax, ecx      ; add ecx to eax
-    imul edx, 10      ; multiply edx by 10 (for next digit)
+    imul edx, 10      ; multiply edx by 10 (for next place multiplier)
     dec ebx           ; one less digit to loop through
     jnz  .intloop     ; if value is not 0 keep going.
   ret
@@ -47,7 +72,7 @@ string_to_int:
 ; ----- END string_to_int -----
 
 ; ----- START word_to_hexstr -----
-; - Converts a 4 byte word (in eax)
+; - Converts a 2 byte word (in ax)
 ; - to a 4 character, newline terminated string
 word_to_hexstr:
   mov edi, outstr
