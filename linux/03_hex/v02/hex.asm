@@ -14,7 +14,7 @@ _start:             ; tells linker entry point
   call string_to_int      ; parse argument 1 for an integer (returned in eax)
   call word_to_hexstr     ; convert the int (in eax) to a hexadecimal string (stored in outstr)
 
-  mov edx, 5        ; message length
+  mov edx, 9        ; message length
   mov ecx, outstr   ; message to write
   mov ebx, 1        ; file descriptor (stdout)
   mov eax, 4        ; system call number (sys_write)
@@ -47,7 +47,6 @@ str_len:
   pop ecx           ; return ecx to original state
   pop eax           ; return eax to original state
   ret
-  
 ; ----- END str_len -----
 
 ; ----- START string_to_int -----
@@ -68,23 +67,22 @@ string_to_int:
     dec ebx           ; one less digit to loop through
     jnz  .intloop     ; if value is not 0 keep going.
   ret
-
 ; ----- END string_to_int -----
 
 ; ----- START word_to_hexstr -----
-; - Converts a 2 byte word (in ax)
-; - to a 4 character, newline terminated string
+; - Converts a 4 byte word (in eax)
+; - to a 8 character, newline terminated string
 word_to_hexstr:
   mov edi, outstr
   mov esi, hexstr
-  mov cx, 4
+  mov cx, 8
   .hexloop:
-    rol ax, 4                 ; rotate 4 bits to the left
+    rol eax, 4                ; rotate 4 bits to the left
     mov ebx, eax              ; copy ax to bx
     and ebx, 0x000f           ; only use the last 4 bits
     mov bl, [esi + ebx]       ; use to pick a character from the hex string
     mov [edi], bl             ; store result in outstr (pointed to by DI)
-    inc edi                   ; shift to the next space in DI
+    inc edi                   ; shift to the next space in output
     dec cx                    ; 1 less nibble to check
     jnz .hexloop              ; repeat loop till no more nibbles
   mov ebx, 10                 ; add newline character...
@@ -110,4 +108,4 @@ section .data
   len_no_args equ $-msg_no_args
 
 section .bss
-  outstr resb 5     ; Reserve 5 bytes for num (4 nibbles + newline)
+  outstr resb 9     ; Reserve 5 bytes for num (4 nibbles + newline)
