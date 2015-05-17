@@ -5,3 +5,7 @@
 *.o
 *.bin
 *.swp
+*~
+*.lst
+.*
+wileybook/
