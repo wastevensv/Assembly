@@ -57,6 +57,7 @@ string_to_int:
   add esi, ebx      ; esi now points to the end of the string
   xor eax, eax      ; eax = 0
   mov edx, 1        ; edx = place multiplier (1s-place)
+  ; intloop - Loops from last character (ones place) to first character
   .intloop:
     dec esi           ; shift back to next character
     mov cl, [esi]     ; cl contains current character in ascii
@@ -73,18 +74,19 @@ string_to_int:
 ; - Converts a 4 byte word (in eax)
 ; - to a 8 character, newline terminated string
 word_to_hexstr:
-  mov edi, outstr
-  mov esi, hexstr
-  mov cx, 8
+  mov edi, outstr             ; edi points to the current position in the output
+  mov esi, hexstr             ; esi points to the start of the hex lookup table
+  mov cx, 8                   ; eax can hold 8 nibbles (1 nibble = 4 bits)
+  ; hexloop - loops from least signifcant bits to most significant bits
   .hexloop:
-    rol eax, 4                ; rotate 4 bits to the left
+    rol eax, 4                ; rotate 4 highest bits to the low end
     mov ebx, eax              ; copy ax to bx
-    and ebx, 0x000f           ; only use the last 4 bits
-    mov bl, [esi + ebx]       ; use to pick a character from the hex string
+    and ebx, 0x000f           ; only use the low 4 bits
+    mov bl, [esi + ebx]       ; use ebx to pick a character from the hex string (at esi)
     mov [edi], bl             ; store result in outstr (pointed to by DI)
     inc edi                   ; shift to the next space in output
     dec cx                    ; 1 less nibble to check
-    jnz .hexloop              ; repeat loop till no more nibbles
+    jnz .hexloop              ; repeat loop till no more nibbles (cx=0)
   mov ebx, 10                 ; add newline character...
   mov [edi], ebx              ; ... to the end of the string
   ret                         ; return
