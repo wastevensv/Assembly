@@ -11,8 +11,9 @@ _start:
   mov ebx, snippet
   mov eax, len
   .strloop:
-    add byte [ebx+eax-1], 32
     dec eax
+    add byte [ebx+eax], 32
+    cmp eax,0
     jnz .strloop
 
   nop
