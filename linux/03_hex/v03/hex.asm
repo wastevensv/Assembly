@@ -14,17 +14,20 @@ section .text
 
 ; ----- START main -----
 _start:             ; tells linker entry point
+
+  ; Place the address of the first command line argument in eax.
   push ebp                ; put ebp on the stack
   mov ebp, esp            ; esp is now the bottom of the stack
   cmp dword [ebp + 4], 1  ; check argument count (1st item is always program path)
   je  err_no_args         ; no args entered, dont do anything.
-
-;  mov ebx, 4              ; assuming string is 4 characters
   mov eax, [ebp + 12]     ; eax now points to the first argument
-  call str_len
+  
+  ; Convert the string in eax to hex string.
+  call str_len            ; find the length of the string in eax (returned in ebx)
   call string_to_int      ; parse argument 1 for an integer (returned in eax)
   call word_to_hexstr     ; convert the int (in eax) to a hexadecimal string (stored in outstr)
 
+  ; Print the output.
   mov edx, outlen   ; message length
   mov ecx, outstr   ; message to write
   mov ebx, 1        ; file descriptor (stdout)
@@ -45,15 +48,20 @@ str_len:
   push ecx          ; preserve ecx in stack
   push edi          ; preserve edi in stack
 
+  ; Set parameters to search the string.
   mov edi, eax      ; edi points to the start of the string
-  xor eax, eax      ; eax is now 0 (NUL terminated string)
-  not ecx           ; ecx is now -1 (2s compliment) (not x = abs(x)-1)
+  xor eax, eax      ; eax = 0 (NUL terminated string)
+  xor ecx, ecx      ; ecx = 0
+  not ecx           ; ecx = -1 (2s compliment) (not x = abs(x)-1)
+  
+  ; Search the string pointed to by edi for the value in al (0)
   cld               ; clear direction flag (search forward)
-  repne scasb       ; search string for value in al (0 or NUL)
+  repne scasb       ; search string for value in al (0 or NUL) (increment ecx each pass)
   not ecx           ; ecx was -length-2, (not x = abs(x)-1), ecx is now length+1
   dec ecx           ; ecx is now string length
 
   mov ebx, ecx      ; ebx is now string length
+  
   pop edi           ; return edi to original state
   pop ecx           ; return ecx to original state
   pop eax           ; return eax to original state
@@ -88,8 +96,10 @@ word_to_hexstr:
   mov edi, outstr             ; edi points to the position of the output template
   mov esi, hexstr             ; esi points to the start of the hex lookup table
   xor ecx, ecx                ; ecx points to offset in output
+  
   ; hexloop - loops from least signifcant bits to most significant bits
   .hexloop:
+    ; Convert the first nibble in the byte
     inc ecx
     rol eax, 4                ; rotate 4 highest bits to the low end
     mov ebx, eax              ; copy ax to bx
@@ -97,6 +107,7 @@ word_to_hexstr:
     mov bl, [esi + ebx]       ; use ebx to pick a character from the hex string (at esi)
     mov [edi+ecx], bl         ; store result in outstr (pointed to by edi)
     
+    ; Convert the second nibble in the byte
     inc ecx
     rol eax, 4                ; rotate 4 highest bits to the low end
     mov ebx, eax              ; copy ax to bx
@@ -104,9 +115,10 @@ word_to_hexstr:
     mov bl, [esi + ebx]       ; use ebx to pick a character from the hex string (at esi)
     mov [edi+ecx], bl         ; store result in outstr (pointed to by edi)
     
+    ; move on to the next byte
     inc ecx                   ; shift to the next space in output
-    cmp ecx, outlen-1         ; 1 less nibble to check
-    jna .hexloop              ; repeat loop till no more nibbles (cx=0)
+    cmp ecx, outlen-1         ; Check if we have reached the end.
+    jna .hexloop              ; repeat loop till no more nibbles (cx=outlen)
   ret                         ; return
 ; ----- END word_to_hexstr -----
 
